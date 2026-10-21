@@ -21,3 +21,8 @@ Personal finance tracker for monthly income and expense analysis.
 - Monthly dashboard
 - Expense analytics
 - Monthly history
+
+## Run locally
+
+```bash
+uvicorn app.main:app --reload
