@@ -26,3 +26,10 @@ Personal finance tracker for monthly income and expense analysis.
 
 ```bash
 uvicorn app.main:app --reload
+
+## Database migrations
+
+Create migration:
+
+```bash
+poetry run alembic revision --autogenerate -m "Migration name"
