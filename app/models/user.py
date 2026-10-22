@@ -39,4 +39,10 @@ class User(Base):
     "Category",
     back_populates="user",
     cascade="all, delete-orphan",
-)
+    )
+
+    monthly_records = relationship(
+    "MonthlyRecord",
+    back_populates="user",
+    cascade="all, delete-orphan",
+    )

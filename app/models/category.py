@@ -55,3 +55,9 @@ class Category(Base):
         "User",
         back_populates="categories",
     )
+
+    monthly_records = relationship(
+    "MonthlyRecord",
+    back_populates="category",
+    cascade="all, delete-orphan",
+    )
