@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import settings
+from app.db.database import check_database_connection
 
 
 app = FastAPI(
@@ -12,7 +13,14 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
+    database_status = (
+        "connected"
+        if check_database_connection()
+        else "disconnected"
+    )
+
     return {
         "status": "ok",
         "environment": settings.app_env,
+        "database": database_status,
     }
