@@ -48,12 +48,7 @@ def create_access_token(subject: str) -> str:
         algorithm=settings.jwt_algorithm,
     )
 
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
-    ) -> User:
-    token = credentials.credentials
-
+def get_user_from_token(token: str, db: Session) -> User:
     try:
         payload = jwt.decode(
             token,
@@ -80,3 +75,10 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+    ) -> User:
+    return get_user_from_token(credentials.credentials, db)

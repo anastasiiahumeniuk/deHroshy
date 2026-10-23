@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Edit category · deHroshy{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Edit category</h1><p>Update the category name or type.</p></div></header>
+<section class="panel form-panel narrow">
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+    <form class="stacked-form" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>Category name<input type="text" name="name" value="{{ form_data.name if form_data else category.name }}" maxlength="100" required></label>
+        {% set selected_type = form_data.type if form_data else category.type.value %}
+        <label>Category type<select name="type"><option value="INCOME" {% if selected_type == 'INCOME' %}selected{% endif %}>Income</option><option value="EXPENSE" {% if selected_type == 'EXPENSE' %}selected{% endif %}>Expense</option></select></label>
+        <div class="form-actions"><a class="button secondary" href="/ui/categories">Cancel</a><button class="button primary" type="submit">Save changes</button></div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Monthly Records · deHroshy{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div><h1>Monthly Records</h1><p>Manage the aggregated entries for {{ month_name }} {{ year }}.</p></div>
+    {% include "_period_nav.html" %}
+</header>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+<section class="panel records-panel">
+    <div class="panel-heading">
+        <div><h2>{{ month_name }} {{ year }}</h2><span class="panel-subtitle">{{ records|length }} record{% if records|length != 1 %}s{% endif %}</span></div>
+        <a class="button primary" href="/ui/monthly-records/new?year={{ year }}&month={{ month }}"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg> Add Record</a>
+    </div>
+    {% if records %}
+    <div class="table-wrap"><table>
+        <thead><tr><th>Category</th><th>Account</th><th>Type</th><th>Comment</th><th class="amount-cell">Amount</th><th>Actions</th></tr></thead>
+        <tbody>{% for record in records %}<tr>
+            <td class="strong-cell">{{ record.category.name }}</td>
+            <td>{{ record.account.name }}</td>
+            <td><span class="badge {{ record.category.type.value|lower }}">{{ record.category.type.value|title }}</span></td>
+            <td class="muted-cell">{{ record.comment or '—' }}</td>
+            <td class="amount-cell record-amount {{ record.category.type.value|lower }}">{% if record.category.type.value == 'EXPENSE' %}−{% else %}+{% endif %}{{ "{:,.2f}".format(record.amount) }}</td>
+            <td><div class="row-actions">
+                <a class="button small secondary" href="/ui/monthly-records/{{ record.id }}/edit">Edit</a>
+                <form method="post" action="/ui/monthly-records/{{ record.id }}/delete">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="year" value="{{ year }}"><input type="hidden" name="month" value="{{ month }}">
+                    <button class="button small danger" type="submit">Delete</button>
+                </form>
+            </div></td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<div class="empty-state"><strong>No records for {{ month_name }}</strong><span>This month is ready for its first entry.</span><a class="button primary" href="/ui/monthly-records/new?year={{ year }}&month={{ month }}">Add Record</a></div>{% endif %}
+</section>
+{% endblock %}
