@@ -5,6 +5,7 @@ from app.db.database import check_database_connection
 from app.api.auth import router as auth_router
 from app.api.accounts import router as accounts_router
 from app.api.categories import router as categories_router
+from app.api.monthly_records import router as monthly_records_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -30,3 +31,4 @@ def health_check() -> dict[str, str]:
 app.include_router(auth_router)
 app.include_router(accounts_router)
 app.include_router(categories_router)
+app.include_router(monthly_records_router)
