@@ -181,7 +181,7 @@ def update_monthly_record(
     if data.amount is not None:
         record.amount = data.amount
 
-    if data.comment is not None:
+    if "comment" in data.model_fields_set:
         record.comment = data.comment
 
     db.commit()

@@ -13,8 +13,17 @@
             <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required autofocus>
         </label>
         <label>Password
-            <input type="password" name="password" minlength="8" autocomplete="new-password" required>
-            <small>Use at least 8 characters.</small>
+            <input
+                type="password"
+                name="password"
+                minlength="8"
+                maxlength="128"
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&amp;*])\S{8,128}"
+                title="Use 8–128 characters with uppercase, lowercase, number and special character"
+                autocomplete="new-password"
+                required
+            >
+            <small>Use 8–128 characters with uppercase, lowercase, number and special character.</small>
         </label>
         <button class="button primary wide" type="submit">Create account</button>
     </form>

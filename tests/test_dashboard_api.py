@@ -1,5 +1,5 @@
 def register_and_login(client, email: str) -> str:
-    password = "strong_password"
+    password = "StrongPassword1!"
 
     client.post(
         "/auth/register",

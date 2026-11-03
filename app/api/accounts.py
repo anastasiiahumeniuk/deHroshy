@@ -27,6 +27,19 @@ def create_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Account:
+    existing_account = db.scalar(
+        select(Account).where(
+            Account.user_id == current_user.id,
+            Account.name == data.name,
+        )
+    )
+
+    if existing_account is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Account with this name already exists",
+        )
+
     account = Account(
         user_id=current_user.id,
         name=data.name,
@@ -102,6 +115,21 @@ def update_account(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Account not found",
+        )
+
+    new_name = data.name if data.name is not None else account.name
+    duplicate = db.scalar(
+        select(Account).where(
+            Account.user_id == current_user.id,
+            Account.name == new_name,
+            Account.id != account.id,
+        )
+    )
+
+    if duplicate is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Account with this name already exists",
         )
 
     if data.name is not None:

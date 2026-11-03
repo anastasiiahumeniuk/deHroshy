@@ -1,5 +1,5 @@
 def register_and_login(client, email: str) -> str:
-    password = "strong_password"
+    password = "StrongPassword1!"
 
     client.post(
         "/auth/register",
@@ -192,6 +192,61 @@ def test_invalid_category_type_is_rejected(client) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_category_name_is_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "category_normalized@example.com",
+    )
+
+    response = client.post(
+        "/categories",
+        headers=auth_headers(token),
+        json={"name": "  Food   and Dining  ", "type": "EXPENSE"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "Food and Dining"
+
+
+def test_invalid_category_name_characters_are_rejected(client) -> None:
+    token = register_and_login(
+        client,
+        "category_invalid_characters@example.com",
+    )
+
+    for name in ("<script>", "Food🍕", "Food_Category", "@@@", "   "):
+        response = client.post(
+            "/categories",
+            headers=auth_headers(token),
+            json={"name": name, "type": "EXPENSE"},
+        )
+
+        assert response.status_code == 422
+        assert "Category name" in response.text
+
+
+def test_category_update_name_is_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "category_update_normalized@example.com",
+    )
+    create_response = client.post(
+        "/categories",
+        headers=auth_headers(token),
+        json={"name": "Food", "type": "EXPENSE"},
+    )
+    category_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/categories/{category_id}",
+        headers=auth_headers(token),
+        json={"name": "  Restaurants   and Cafes  "},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Restaurants and Cafes"
 
 
 def test_duplicate_category_is_rejected(client) -> None:
