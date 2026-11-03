@@ -3,7 +3,7 @@ from decimal import Decimal
 
 
 PASSWORD_PATTERN = re.compile(
-    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])\S{8,128}$"
+    r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,128}$"
 )
 
 AMOUNT_PATTERN = re.compile(
@@ -33,7 +33,7 @@ def validate_password_strength(value: str) -> str:
         raise ValueError(
             "Password must contain an uppercase letter, "
             "a lowercase letter, a number, a special character "
-            "(!@#$%^&*), and must not contain spaces"
+            "and must not contain spaces"
         )
 
     return value

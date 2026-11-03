@@ -111,3 +111,28 @@ def test_weak_password_is_rejected(
 
     assert response.status_code == 422
     assert response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "password",
+    [
+        "StrongPassword1_",
+        "StrongPassword1.",
+        "StrongPassword1-",
+        "StrongPassword1?",
+        "StrongPassword1+",
+    ],
+)
+def test_different_special_characters_are_accepted(
+    client,
+    password: str,
+) -> None:
+    response = client.post(
+        "/auth/register",
+        json={
+            "email": f"special-{ord(password[-1])}@example.com",
+            "password": password,
+        },
+    )
+
+    assert response.status_code == 201

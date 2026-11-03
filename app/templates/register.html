@@ -18,7 +18,7 @@
                 name="password"
                 minlength="8"
                 maxlength="128"
-                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&amp;*])\S{8,128}"
+                pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])\S{8,128}"
                 title="Use 8–128 characters with uppercase, lowercase, number and special character"
                 autocomplete="new-password"
                 required
