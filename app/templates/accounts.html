@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Accounts · deHroshy{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Accounts</h1><p>Manage the places where your money is held.</p></div></header>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+<div class="management-grid">
+    <section class="panel form-card">
+        <div class="panel-heading"><h2>Add account</h2></div>
+        {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+        <form class="stacked-form" method="post" action="/ui/accounts">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label>Account name<input type="text" name="name" maxlength="100" value="{{ form_data.name or '' }}" placeholder="e.g. Main card" required></label>
+            <label>Account type<input type="text" name="type" maxlength="50" value="{{ form_data.type or '' }}" placeholder="e.g. card, cash, bank" required></label>
+            <button class="button primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg> Add account</button>
+        </form>
+    </section>
+    <section class="panel list-panel">
+        <div class="panel-heading"><div><h2>Your accounts</h2><span class="panel-subtitle">{{ accounts|length }} total</span></div></div>
+        {% if accounts %}<div class="item-list">
+            {% for account in accounts %}<article class="list-item {% if not account.is_active %}inactive{% endif %}">
+                <div class="item-icon account-icon"><svg class="icon" aria-hidden="true"><use href="#icon-card"></use></svg></div>
+                <div class="item-primary"><strong>{{ account.name }}</strong><span>{{ account.type }}</span></div>
+                <span class="status {% if account.is_active %}active{% else %}inactive{% endif %}">{{ 'Active' if account.is_active else 'Inactive' }}</span>
+                <div class="row-actions"><a class="button small secondary" href="/ui/accounts/{{ account.id }}/edit">Edit</a>
+                    {% if account.is_active %}<form method="post" action="/ui/accounts/{{ account.id }}/deactivate"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button small danger" type="submit">Deactivate</button></form>{% endif %}
+                </div>
+            </article>{% endfor %}
+        </div>{% else %}<div class="empty-state compact"><strong>No accounts yet</strong><span>Add your first account using the form.</span></div>{% endif %}
+    </section>
+</div>
+{% endblock %}

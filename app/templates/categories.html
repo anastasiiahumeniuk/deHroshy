@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Categories · deHroshy{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Categories</h1><p>Organize income and expenses into clear groups.</p></div></header>
+{% if message %}<div class="alert success">{{ message }}</div>{% endif %}
+<div class="management-grid">
+    <section class="panel form-card">
+        <div class="panel-heading"><h2>Add category</h2></div>
+        {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+        <form class="stacked-form" method="post" action="/ui/categories">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <label>Category name<input type="text" name="name" maxlength="100" value="{{ form_data.name or '' }}" placeholder="e.g. Salary or Food" required></label>
+            <label>Category type<select name="type" required><option value="INCOME" {% if form_data.type == 'INCOME' %}selected{% endif %}>Income</option><option value="EXPENSE" {% if form_data.type == 'EXPENSE' %}selected{% endif %}>Expense</option></select></label>
+            <button class="button primary" type="submit"><svg class="icon" aria-hidden="true"><use href="#icon-plus"></use></svg> Add category</button>
+        </form>
+    </section>
+    <section class="panel list-panel">
+        <div class="panel-heading"><div><h2>Your categories</h2><span class="panel-subtitle">{{ categories|length }} total</span></div></div>
+        {% if categories %}<div class="item-list">
+            {% for category in categories %}<article class="list-item {% if not category.is_active %}inactive{% endif %}">
+                <div class="item-icon {{ category.type.value|lower }}-icon"><svg class="icon" aria-hidden="true"><use href="#icon-{{ 'arrow-up' if category.type.value == 'INCOME' else 'arrow-down' }}"></use></svg></div>
+                <div class="item-primary"><strong>{{ category.name }}</strong><span class="badge {{ category.type.value|lower }}">{{ category.type.value|title }}</span></div>
+                <span class="status {% if category.is_active %}active{% else %}inactive{% endif %}">{{ 'Active' if category.is_active else 'Inactive' }}</span>
+                <div class="row-actions"><a class="button small secondary" href="/ui/categories/{{ category.id }}/edit">Edit</a>
+                    {% if category.is_active %}<form method="post" action="/ui/categories/{{ category.id }}/deactivate"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button small danger" type="submit">Deactivate</button></form>{% endif %}
+                </div>
+            </article>{% endfor %}
+        </div>{% else %}<div class="empty-state compact"><strong>No categories yet</strong><span>Add an income or expense category.</span></div>{% endif %}
+    </section>
+</div>
+{% endblock %}

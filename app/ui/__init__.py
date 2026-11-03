@@ -1,0 +1,1 @@
+"""Server-rendered user interface."""

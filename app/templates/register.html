@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Create account · deHroshy{% endblock %}
+{% block auth_content %}
+<section class="auth-card">
+    <a class="brand auth-brand" href="/ui/register">deHroshy</a>
+    <div class="auth-heading">
+        <h1>Create your account</h1>
+        <p>Start tracking income and expenses by month.</p>
+    </div>
+    {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
+    <form class="stacked-form" method="post" action="/ui/register">
+        <label>Email
+            <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required autofocus>
+        </label>
+        <label>Password
+            <input type="password" name="password" minlength="8" autocomplete="new-password" required>
+            <small>Use at least 8 characters.</small>
+        </label>
+        <button class="button primary wide" type="submit">Create account</button>
+    </form>
+    <p class="auth-switch">Already have an account? <a href="/ui/login">Log in</a></p>
+</section>
+{% endblock %}
