@@ -1,14 +1,14 @@
 def register_and_login_ui(client, email: str = "ui@example.com") -> str:
     register_response = client.post(
         "/ui/register",
-        data={"email": email, "password": "strong_password"},
+        data={"email": email, "password": "StrongPassword1!"},
         follow_redirects=False,
     )
     assert register_response.status_code == 303
 
     login_response = client.post(
         "/ui/login",
-        data={"email": email, "password": "strong_password"},
+        data={"email": email, "password": "StrongPassword1!"},
         follow_redirects=False,
     )
     assert login_response.status_code == 303

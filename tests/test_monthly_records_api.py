@@ -1,5 +1,5 @@
 def register_and_login(client, email: str) -> str:
-    password = "strong_password"
+    password = "StrongPassword1!"
 
     client.post(
         "/auth/register",
@@ -65,6 +65,7 @@ def create_monthly_record(
     year: int = 2026,
     month: int = 10,
     amount: str = "8500.50",
+    comment: str | None = "Test record",
 ):
     return client.post(
         "/monthly-records",
@@ -75,7 +76,7 @@ def create_monthly_record(
             "year": year,
             "month": month,
             "amount": amount,
-            "comment": "Test record",
+            "comment": comment,
         },
     )
 
@@ -362,6 +363,162 @@ def test_invalid_amount_is_rejected(client) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_amount_with_comma_and_whitespace_is_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_comma_amount@example.com",
+    )
+
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+        amount=" 8500,50 ",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["amount"] == "8500.50"
+
+
+def test_invalid_amount_formats_are_rejected(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_invalid_amount_format@example.com",
+    )
+
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    for amount in (
+        "12abc",
+        "1,000.50",
+        "1.000,50",
+        "10,999",
+        "100.999",
+        "",
+    ):
+        response = create_monthly_record(
+            client,
+            token,
+            account_id,
+            category_id,
+            amount=amount,
+        )
+
+        assert response.status_code == 422
+        assert "Amount must be a positive number" in response.text
+
+
+def test_comment_whitespace_is_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_comment_normalized@example.com",
+    )
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+        comment="  Monthly   salary\nfor October  ",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["comment"] == "Monthly salary for October"
+
+
+def test_blank_comment_is_stored_as_none(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_blank_comment@example.com",
+    )
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+        comment="   ",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["comment"] is None
+
+
+def test_comment_length_is_limited(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_long_comment@example.com",
+    )
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+        comment="a" * 501,
+    )
+
+    assert response.status_code == 422
+
+
+def test_record_ids_must_be_positive(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_positive_ids@example.com",
+    )
+
+    response = client.post(
+        "/monthly-records",
+        headers=auth_headers(token),
+        json={
+            "account_id": 0,
+            "category_id": -1,
+            "year": 2026,
+            "month": 10,
+            "amount": "100.00",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_blank_comment_clears_existing_comment(client) -> None:
+    token = register_and_login(
+        client,
+        "monthly_clear_comment@example.com",
+    )
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+    create_response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+        comment="Original comment",
+    )
+    record_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/monthly-records/{record_id}",
+        headers=auth_headers(token),
+        json={"comment": "   "},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["comment"] is None
 
 
 def test_invalid_month_is_rejected(client) -> None:

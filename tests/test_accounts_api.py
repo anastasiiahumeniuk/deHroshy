@@ -1,5 +1,5 @@
 def register_and_login(client, email: str) -> str:
-    password = "strong_password"
+    password = "StrongPassword1!"
 
     client.post(
         "/auth/register",
@@ -225,3 +225,101 @@ def test_account_name_validation(client) -> None:
     )
 
     assert response.status_code == 422
+
+
+def test_account_fields_are_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "account_normalized@example.com",
+    )
+
+    response = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={
+            "name": "  Main   Card  ",
+            "type": "  CREDIT   CARD  ",
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "Main Card"
+    assert response.json()["type"] == "credit card"
+
+
+def test_invalid_account_characters_are_rejected(client) -> None:
+    token = register_and_login(
+        client,
+        "account_invalid_characters@example.com",
+    )
+
+    for name in ("<script>", "Wallet💳", "Card_One", "@@@", "   "):
+        response = client.post(
+            "/accounts",
+            headers=auth_headers(token),
+            json={"name": name, "type": "card"},
+        )
+
+        assert response.status_code == 422
+        assert "Account name" in response.text
+
+
+def test_invalid_account_type_characters_are_rejected(client) -> None:
+    token = register_and_login(
+        client,
+        "account_invalid_type@example.com",
+    )
+
+    response = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "Main card", "type": "card@home"},
+    )
+
+    assert response.status_code == 422
+    assert "Account type" in response.text
+
+
+def test_account_update_is_normalized(client) -> None:
+    token = register_and_login(
+        client,
+        "account_update_normalized@example.com",
+    )
+    create_response = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "Main card", "type": "card"},
+    )
+    account_id = create_response.json()["id"]
+
+    response = client.patch(
+        f"/accounts/{account_id}",
+        headers=auth_headers(token),
+        json={"name": "  Travel   Card  ", "type": "  BANK  "},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "Travel Card"
+    assert response.json()["type"] == "bank"
+
+
+def test_duplicate_normalized_account_name_is_rejected(client) -> None:
+    token = register_and_login(
+        client,
+        "account_duplicate_normalized@example.com",
+    )
+
+    first_response = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "Main Card", "type": "card"},
+    )
+    second_response = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "  Main   Card  ", "type": "cash"},
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+    assert second_response.json()["detail"] == "Account with this name already exists"
