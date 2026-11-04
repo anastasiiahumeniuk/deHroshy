@@ -1,82 +1,10 @@
-def register_and_login(client, email: str) -> str:
-    password = "StrongPassword1!"
-
-    client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    return response.json()["access_token"]
-
-
-def auth_headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}"
-    }
-
-
-def create_account(client, token: str, name: str = "Monobank") -> int:
-    response = client.post(
-        "/accounts",
-        headers=auth_headers(token),
-        json={
-            "name": name,
-            "type": "card",
-        },
-    )
-
-    return response.json()["id"]
-
-
-def create_category(
-    client,
-    token: str,
-    name: str,
-    type: str,
-) -> int:
-    response = client.post(
-        "/categories",
-        headers=auth_headers(token),
-        json={
-            "name": name,
-            "type": type,
-        },
-    )
-
-    return response.json()["id"]
-
-
-def create_record(
-    client,
-    token: str,
-    account_id: int,
-    category_id: int,
-    amount: str,
-    year: int = 2026,
-    month: int = 10,
-):
-    return client.post(
-        "/monthly-records",
-        headers=auth_headers(token),
-        json={
-            "account_id": account_id,
-            "category_id": category_id,
-            "year": year,
-            "month": month,
-            "amount": amount,
-        },
-    )
+from tests.factories import (
+    auth_headers,
+    create_account,
+    create_category,
+    create_monthly_record as create_record,
+    register_and_login,
+)
 
 
 def test_monthly_dashboard_totals(client) -> None:

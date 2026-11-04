@@ -1,3 +1,6 @@
+import re
+
+
 def register_and_login_ui(client, email: str = "ui@example.com") -> str:
     register_response = client.post(
         "/ui/register",
@@ -233,6 +236,3 @@ def test_ui_rejects_missing_csrf_token(client) -> None:
     )
 
     assert response.status_code == 403
-import re
-
-

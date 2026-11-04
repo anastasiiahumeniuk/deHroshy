@@ -42,6 +42,29 @@ def test_login_user(client) -> None:
     assert data["token_type"] == "bearer"
 
 
+def test_duplicate_registration_is_rejected(client) -> None:
+    payload = {
+        "email": "duplicate-auth@example.com",
+        "password": "StrongPassword1_",
+    }
+
+    first_response = client.post("/auth/register", json=payload)
+    second_response = client.post("/auth/register", json=payload)
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 409
+
+
+def test_get_current_user(client, authenticated_user) -> None:
+    response = client.get(
+        "/auth/me",
+        headers=authenticated_user["headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == authenticated_user["email"]
+
+
 def test_login_with_wrong_password(client) -> None:
     client.post(
         "/auth/register",
