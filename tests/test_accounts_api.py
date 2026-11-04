@@ -290,3 +290,48 @@ def test_duplicate_normalized_account_name_is_rejected(client) -> None:
     assert first_response.status_code == 201
     assert second_response.status_code == 409
     assert second_response.json()["detail"] == "Account with this name already exists"
+
+
+def test_duplicate_account_name_is_rejected_on_update(client) -> None:
+    token = register_and_login(client, "account_duplicate_update@example.com")
+    first_id = client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "First account", "type": "card"},
+    ).json()["id"]
+    client.post(
+        "/accounts",
+        headers=auth_headers(token),
+        json={"name": "Second account", "type": "cash"},
+    )
+
+    response = client.patch(
+        f"/accounts/{first_id}",
+        headers=auth_headers(token),
+        json={"name": "Second account"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_user_cannot_update_or_deactivate_another_users_account(client) -> None:
+    owner_token = register_and_login(client, "account_mutation_owner@example.com")
+    other_token = register_and_login(client, "account_mutation_other@example.com")
+    account_id = client.post(
+        "/accounts",
+        headers=auth_headers(owner_token),
+        json={"name": "Owner account", "type": "card"},
+    ).json()["id"]
+
+    update_response = client.patch(
+        f"/accounts/{account_id}",
+        headers=auth_headers(other_token),
+        json={"name": "Stolen account"},
+    )
+    deactivate_response = client.patch(
+        f"/accounts/{account_id}/deactivate",
+        headers=auth_headers(other_token),
+    )
+
+    assert update_response.status_code == 404
+    assert deactivate_response.status_code == 404

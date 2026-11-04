@@ -61,6 +61,27 @@ def test_database_connection_error_is_logged(monkeypatch) -> None:
     }
 
 
+def test_successful_database_connection_is_logged(monkeypatch) -> None:
+    class ConnectionContext:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return False
+
+        def execute(self, statement):
+            return None
+
+    monkeypatch.setattr(database.engine, "connect", ConnectionContext)
+
+    with patch("app.db.database.logger.info") as log_info:
+        assert database.check_database_connection() is True
+
+    assert log_info.call_args.kwargs["extra"] == {
+        "event": "database_connection_success",
+    }
+
+
 def test_authentication_failure_log_does_not_expose_credentials(client) -> None:
     email = "private-login@example.com"
     password = "SecretPassword1_"

@@ -126,3 +126,26 @@ their related data:
 Development seeding refuses to run when `APP_ENV` is not one of `dev`,
 `development`, `local`, `test`, or `testing`. The test target always uses the
 separate `TEST_DATABASE_URL`. The command never deletes non-demo users.
+
+## Test coverage
+
+Coverage reporting is configured through `pyproject.toml`. A normal full test
+run automatically collects statement and branch coverage, prints missing lines,
+creates an HTML report in `htmlcov/`, and writes Cobertura XML to
+`coverage.xml`:
+
+```bash
+poetry run pytest
+```
+
+Open `htmlcov/index.html` in a browser for the navigable line-by-line report.
+The suite fails when total coverage drops below 80%.
+
+For a quick focused test run without calculating whole-application coverage:
+
+```bash
+poetry run pytest --no-cov tests/test_auth_api.py
+```
+
+Known gaps and the reasoning behind the threshold are documented in
+`docs/test-coverage.md`.

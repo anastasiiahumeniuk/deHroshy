@@ -577,3 +577,48 @@ def test_user_cannot_delete_another_users_record(client) -> None:
     )
 
     assert response.status_code == 404
+
+
+def test_user_cannot_create_record_with_another_users_category(client) -> None:
+    owner_token = register_and_login(client, "monthly_category_owner@example.com")
+    other_token = register_and_login(client, "monthly_category_other@example.com")
+    other_account_id = create_account(client, other_token)
+    owner_category_id = create_category(client, owner_token)
+
+    response = create_monthly_record(
+        client,
+        other_token,
+        other_account_id,
+        owner_category_id,
+    )
+
+    assert response.status_code == 404
+
+
+def test_user_cannot_assign_another_users_entities_to_record(client) -> None:
+    owner_token = register_and_login(client, "monthly_entities_owner@example.com")
+    other_token = register_and_login(client, "monthly_entities_other@example.com")
+    owner_account_id = create_account(client, owner_token)
+    owner_category_id = create_category(client, owner_token)
+    other_account_id = create_account(client, other_token)
+    other_category_id = create_category(client, other_token)
+    record_id = create_monthly_record(
+        client,
+        owner_token,
+        owner_account_id,
+        owner_category_id,
+    ).json()["id"]
+
+    account_response = client.patch(
+        f"/monthly-records/{record_id}",
+        headers=auth_headers(owner_token),
+        json={"account_id": other_account_id},
+    )
+    category_response = client.patch(
+        f"/monthly-records/{record_id}",
+        headers=auth_headers(owner_token),
+        json={"category_id": other_category_id},
+    )
+
+    assert account_response.status_code == 404
+    assert category_response.status_code == 404

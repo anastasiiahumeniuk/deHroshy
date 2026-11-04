@@ -4,3 +4,8 @@ __pycache__/
 .env
 .idea/
 .vscode/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.pytest_cache/

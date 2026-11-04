@@ -1,8 +1,14 @@
 import jwt
+import pytest
+from fastapi import HTTPException
 
 from app.config import settings
-from app.core.security import create_access_token
-from app.core.security import hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    get_user_from_token,
+    hash_password,
+    verify_password,
+)
 
 def test_hash_password() -> None:
     password = "secure_password"
@@ -39,3 +45,13 @@ def test_create_access_token() -> None:
 
     assert payload["sub"] == "1"
     assert "exp" in payload
+
+
+def test_token_for_missing_user_is_rejected(db_session) -> None:
+    token = create_access_token("2147483647")
+
+    with pytest.raises(HTTPException) as exc_info:
+        get_user_from_token(token, db_session)
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "User not found"
