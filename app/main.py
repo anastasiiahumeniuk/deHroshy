@@ -1,7 +1,9 @@
+import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -11,12 +13,35 @@ from app.api.accounts import router as accounts_router
 from app.api.categories import router as categories_router
 from app.api.monthly_records import router as monthly_records_router
 from app.api.dashboard import router as dashboard_router
+from app.core.logging import configure_logging
 from app.ui.routes import UIAuthenticationRequired, router as ui_router
+
+configure_logging(settings.log_level)
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(
+        "Application startup",
+        extra={"event": "application_startup"},
+    )
+
+    try:
+        yield
+    finally:
+        logger.info(
+            "Application shutdown",
+            extra={"event": "application_shutdown"},
+        )
+
 
 app = FastAPI(
     title=settings.app_name,
     description="Personal monthly finance tracker",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.mount(
@@ -24,6 +49,26 @@ app.mount(
     StaticFiles(directory=Path(__file__).parent / "static"),
     name="static",
 )
+
+
+@app.exception_handler(Exception)
+def unexpected_error_handler(
+    request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    logger.error(
+        "Unexpected application error",
+        extra={
+            "event": "unexpected_application_error",
+            "method": request.method,
+            "path": request.url.path,
+        },
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.exception_handler(UIAuthenticationRequired)
