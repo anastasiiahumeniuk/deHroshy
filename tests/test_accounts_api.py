@@ -1,51 +1,18 @@
-def register_and_login(client, email: str) -> str:
-    password = "StrongPassword1!"
-
-    client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    return response.json()["access_token"]
+from tests.factories import auth_headers, register_and_login
 
 
-def auth_headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}"
-    }
-
-
-def test_create_account(client) -> None:
-    token = register_and_login(
-        client,
-        "account_create@example.com",
-    )
-
+def test_create_account(client, authenticated_user, account_data) -> None:
     response = client.post(
         "/accounts",
-        headers=auth_headers(token),
-        json={
-            "name": "Monobank",
-            "type": "card",
-        },
+        headers=authenticated_user["headers"],
+        json=account_data,
     )
 
     assert response.status_code == 201
 
     data = response.json()
 
-    assert data["name"] == "Monobank"
+    assert data["name"] == account_data["name"]
     assert data["type"] == "card"
     assert data["is_active"] is True
 

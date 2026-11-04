@@ -1,52 +1,19 @@
-def register_and_login(client, email: str) -> str:
-    password = "StrongPassword1!"
-
-    client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    return response.json()["access_token"]
+from tests.factories import auth_headers, register_and_login
 
 
-def auth_headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}"
-    }
-
-
-def test_create_category(client) -> None:
-    token = register_and_login(
-        client,
-        "category_create@example.com",
-    )
-
+def test_create_category(client, authenticated_user, category_data) -> None:
     response = client.post(
         "/categories",
-        headers=auth_headers(token),
-        json={
-            "name": "Salary",
-            "type": "INCOME",
-        },
+        headers=authenticated_user["headers"],
+        json=category_data,
     )
 
     assert response.status_code == 201
 
     data = response.json()
 
-    assert data["name"] == "Salary"
-    assert data["type"] == "INCOME"
+    assert data["name"] == category_data["name"]
+    assert data["type"] == category_data["type"]
     assert data["is_active"] is True
 
 

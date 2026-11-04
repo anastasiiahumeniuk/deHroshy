@@ -1,100 +1,28 @@
-def register_and_login(client, email: str) -> str:
-    password = "StrongPassword1!"
-
-    client.post(
-        "/auth/register",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    response = client.post(
-        "/auth/login",
-        json={
-            "email": email,
-            "password": password,
-        },
-    )
-
-    return response.json()["access_token"]
+from tests.factories import (
+    auth_headers,
+    create_account,
+    create_category,
+    create_monthly_record,
+    register_and_login,
+)
 
 
-def auth_headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}"
-    }
+def test_create_monthly_record(
+    authenticated_user,
+    account_factory,
+    category_factory,
+    monthly_record_factory,
+    monthly_record_data,
+) -> None:
+    token = authenticated_user["token"]
+    account_id = account_factory(token)
+    category_id = category_factory(token)
 
-
-def create_account(client, token: str, name: str = "Monobank") -> int:
-    response = client.post(
-        "/accounts",
-        headers=auth_headers(token),
-        json={
-            "name": name,
-            "type": "card",
-        },
-    )
-
-    return response.json()["id"]
-
-
-def create_category(
-    client,
-    token: str,
-    name: str = "Food",
-    type: str = "EXPENSE",
-) -> int:
-    response = client.post(
-        "/categories",
-        headers=auth_headers(token),
-        json={
-            "name": name,
-            "type": type,
-        },
-    )
-
-    return response.json()["id"]
-
-
-def create_monthly_record(
-    client,
-    token: str,
-    account_id: int,
-    category_id: int,
-    year: int = 2026,
-    month: int = 10,
-    amount: str = "8500.50",
-    comment: str | None = "Test record",
-):
-    return client.post(
-        "/monthly-records",
-        headers=auth_headers(token),
-        json={
-            "account_id": account_id,
-            "category_id": category_id,
-            "year": year,
-            "month": month,
-            "amount": amount,
-            "comment": comment,
-        },
-    )
-
-
-def test_create_monthly_record(client) -> None:
-    token = register_and_login(
-        client,
-        "monthly_create@example.com",
-    )
-
-    account_id = create_account(client, token)
-    category_id = create_category(client, token)
-
-    response = create_monthly_record(
-        client,
+    response = monthly_record_factory(
         token,
         account_id,
         category_id,
+        **monthly_record_data,
     )
 
     assert response.status_code == 201
@@ -103,9 +31,9 @@ def test_create_monthly_record(client) -> None:
 
     assert data["account_id"] == account_id
     assert data["category_id"] == category_id
-    assert data["year"] == 2026
-    assert data["month"] == 10
-    assert data["amount"] == "8500.50"
+    assert data["year"] == monthly_record_data["year"]
+    assert data["month"] == monthly_record_data["month"]
+    assert data["amount"] == monthly_record_data["amount"]
 
 
 def test_list_records_for_selected_month(client) -> None:
