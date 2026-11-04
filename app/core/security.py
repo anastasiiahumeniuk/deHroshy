@@ -1,3 +1,5 @@
+import logging
+
 import jwt
 
 from app.config import settings
@@ -12,6 +14,8 @@ from app.db.session import get_db
 from app.models.user import User
 
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer()
 
@@ -59,6 +63,10 @@ def get_user_from_token(token: str, db: Session) -> User:
         user_id = int(payload["sub"])
 
     except (jwt.InvalidTokenError, KeyError, ValueError):
+        logger.warning(
+            "Token authentication failed",
+            extra={"event": "authentication_failure", "reason": "invalid_token"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -69,6 +77,10 @@ def get_user_from_token(token: str, db: Session) -> User:
     )
 
     if user is None:
+        logger.warning(
+            "Token authentication failed",
+            extra={"event": "authentication_failure", "reason": "user_not_found"},
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
