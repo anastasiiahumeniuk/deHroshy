@@ -14,10 +14,12 @@ from app.scripts.seed_data import (
     resolve_seed_password,
 )
 
+
 class DatabaseTarget(str, Enum):
     DEMO = "demo"
     DEVELOPMENT = "development"
     TEST = "test"
+
 
 app = typer.Typer(
     name="dehroshy",
@@ -36,6 +38,7 @@ def show_config() -> None:
     """Show safe application configuration values."""
     typer.echo(f"Environment: {settings.app_env}")
     typer.echo(f"Log level: {settings.log_level}")
+
 
 @app.command("seed-data")
 def seed_data(
@@ -87,6 +90,7 @@ def seed_data(
         f"{summary.categories} categories and "
         f"{summary.monthly_records} monthly records."
     )
-    
+
+
 if __name__ == "__main__":
     app()

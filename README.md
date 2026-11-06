@@ -36,6 +36,47 @@ Create migration:
 poetry run alembic revision --autogenerate -m "Migration name"
 ```
 
+## Administrative CLI
+
+The project provides a Typer-based command-line interface for common
+administrative tasks. Install the project to register the `dehroshy` command:
+
+```bash
+poetry install
+```
+
+List all commands and options:
+
+```bash
+poetry run dehroshy --help
+```
+
+Show safe application configuration values. Sensitive values such as database
+credentials and authentication secrets are not displayed:
+
+```bash
+poetry run dehroshy show-config
+```
+
+Generate deterministic demo data in the isolated demo database:
+
+```bash
+poetry run dehroshy seed-data
+```
+
+Select a database explicitly with `--database` or its short form `-d`:
+
+```bash
+poetry run dehroshy seed-data --database demo
+poetry run dehroshy seed-data -d test
+poetry run dehroshy seed-data --database development
+```
+
+Allowed database values are `demo`, `test`, and `development`. Invalid values
+are rejected before any database operation begins. The seed command prompts
+for a hidden password and asks for confirmation. For non-interactive execution,
+provide `SEED_DEMO_PASSWORD` through a secure environment or CI secret store.
+
 ## Logging
 
 Application logs are written to stderr as one JSON object per line. Each log
@@ -83,21 +124,21 @@ Generate data in the demo database configured by `DEMO_DATABASE_URL` (or,
 when omitted, a database named by adding `_demo` to the development database):
 
 ```bash
-poetry run python -m app.scripts.seed_data
+poetry run dehroshy seed-data
 ```
 
 Generate the same data in the test database configured by
 `TEST_DATABASE_URL`:
 
 ```bash
-poetry run python -m app.scripts.seed_data --database test
+poetry run dehroshy seed-data --database test
 ```
 
 Seeding the ordinary development database is possible only when explicitly
 requested:
 
 ```bash
-poetry run python -m app.scripts.seed_data --database development
+poetry run dehroshy seed-data --database development
 ```
 
 Run the application against the isolated demo database:
