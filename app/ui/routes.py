@@ -3,7 +3,6 @@ from __future__ import annotations
 import calendar
 import secrets
 from collections.abc import Sequence
-from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TypedDict
@@ -13,7 +12,6 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -50,6 +48,11 @@ from app.schemas.auth import LoginRequest, RegisterRequest
 from app.schemas.category import CategoryCreate, CategoryUpdate
 from app.schemas.dashboard import CategorySummary
 from app.schemas.monthly_record import MonthlyRecordCreate, MonthlyRecordUpdate
+from app.services.ownership import (
+    require_owned_category,
+    require_owned_monthly_record,
+)
+from app.services.periods import resolve_period
 
 
 router = APIRouter(prefix="/ui", tags=["ui"], include_in_schema=False)
@@ -141,12 +144,13 @@ def validate_csrf(request: Request, submitted_token: str) -> None:
 
 
 def selected_period(year: int | None, month: int | None) -> tuple[int, int]:
-    now = datetime.now()
-    selected_year = year or now.year
-    selected_month = month or now.month
-    if selected_year < 1 or selected_month not in range(1, 13):
-        raise HTTPException(status_code=422, detail="Invalid year or month")
-    return selected_year, selected_month
+    try:
+        return resolve_period(year, month)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid year or month",
+        ) from exc
 
 
 def period_link(year: int, month: int, offset: int) -> str:
@@ -341,18 +345,6 @@ def record_form_context(
     return {"accounts": accounts, "categories": categories}
 
 
-def owned_record(record_id: int, db: Session, current_user: User) -> MonthlyRecord:
-    record = db.scalar(
-        select(MonthlyRecord).where(
-            MonthlyRecord.id == record_id,
-            MonthlyRecord.user_id == current_user.id,
-        )
-    )
-    if record is None:
-        raise HTTPException(status_code=404, detail="Monthly record not found")
-    return record
-
-
 @router.get("/monthly-records/new", response_class=HTMLResponse)
 def new_record_page(
     request: Request,
@@ -415,7 +407,7 @@ def edit_record_page(
     db: Session = Depends(get_db),
     current_user: User = Depends(current_ui_user),
 ) -> HTMLResponse:
-    record = owned_record(record_id, db, current_user)
+    record = require_owned_monthly_record(db, record_id, current_user.id)
     return render(
         request,
         "monthly_record_form.html",
@@ -444,7 +436,7 @@ def edit_record_action(
     current_user: User = Depends(current_ui_user),
 ) -> Response:
     validate_csrf(request, csrf_token)
-    record = owned_record(record_id, db, current_user)
+    record = require_owned_monthly_record(db, record_id, current_user.id)
     form_data = dict(account_id=account_id, category_id=category_id, year=year, month=month, amount=amount, comment=comment)
     try:
         data = MonthlyRecordUpdate.model_validate(form_data)
@@ -637,15 +629,6 @@ def create_category_action(
     return RedirectResponse("/ui/categories?message=Category+added", status_code=303)
 
 
-def owned_category(category_id: int, db: Session, current_user: User) -> Category:
-    category = db.scalar(
-        select(Category).where(Category.id == category_id, Category.user_id == current_user.id)
-    )
-    if category is None:
-        raise HTTPException(status_code=404, detail="Category not found")
-    return category
-
-
 @router.get("/categories/{category_id}/edit", response_class=HTMLResponse)
 def edit_category_page(
     category_id: int,
@@ -653,7 +636,7 @@ def edit_category_page(
     db: Session = Depends(get_db),
     current_user: User = Depends(current_ui_user),
 ) -> HTMLResponse:
-    category = owned_category(category_id, db, current_user)
+    category = require_owned_category(db, category_id, current_user.id)
     return render(
         request,
         "category_form.html",
@@ -674,7 +657,7 @@ def edit_category_action(
     current_user: User = Depends(current_ui_user),
 ) -> Response:
     validate_csrf(request, csrf_token)
-    category = owned_category(category_id, db, current_user)
+    category = require_owned_category(db, category_id, current_user.id)
     try:
         data = CategoryUpdate.model_validate({"name": name, "type": type})
         api_update_category(category_id, data, db, current_user)
