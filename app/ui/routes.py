@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import calendar
 import secrets
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import TypedDict
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -39,12 +41,14 @@ from app.api.monthly_records import (
 from app.config import settings
 from app.core.security import get_user_from_token
 from app.db.session import get_db
+from app.models.account import Account
 from app.models.category import Category, CategoryType
 from app.models.monthly_record import MonthlyRecord
 from app.models.user import User
 from app.schemas.accounts import AccountCreate, AccountUpdate
 from app.schemas.auth import LoginRequest, RegisterRequest
 from app.schemas.category import CategoryCreate, CategoryUpdate
+from app.schemas.dashboard import CategorySummary
 from app.schemas.monthly_record import MonthlyRecordCreate, MonthlyRecordUpdate
 
 
@@ -60,6 +64,19 @@ EXPENSE_COLORS = ("#ef6258", "#f5a04a", "#f7c467", "#8f82d8", "#53a8d8")
 
 class UIAuthenticationRequired(Exception):
     """Raised when a browser page needs a valid login cookie."""
+
+
+class PeriodContext(TypedDict):
+    year: int
+    month: int
+    month_name: str
+    previous_period: str
+    next_period: str
+
+
+class RecordFormContext(TypedDict):
+    accounts: list[Account]
+    categories: list[Category]
 
 
 def current_ui_user(
@@ -138,7 +155,10 @@ def period_link(year: int, month: int, offset: int) -> str:
     return f"?year={target_year}&month={zero_based_month + 1}"
 
 
-def chart_style(items: list[object], colors: tuple[str, ...]) -> str:
+def chart_style(
+    items: Sequence[CategorySummary],
+    colors: tuple[str, ...],
+) -> str:
     if not items:
         return "conic-gradient(#e8eeeb 0% 100%)"
 
@@ -152,7 +172,7 @@ def chart_style(items: list[object], colors: tuple[str, ...]) -> str:
     return f"conic-gradient({', '.join(stops)})"
 
 
-def page_period_context(year: int, month: int) -> dict[str, object]:
+def page_period_context(year: int, month: int) -> PeriodContext:
     return {
         "year": year,
         "month": month,
@@ -306,7 +326,11 @@ def monthly_records_page(
     )
 
 
-def record_form_context(db: Session, current_user: User, record: MonthlyRecord | None = None) -> dict[str, object]:
+def record_form_context(
+    db: Session,
+    current_user: User,
+    record: MonthlyRecord | None = None,
+) -> RecordFormContext:
     accounts = [account for account in api_list_accounts(db, current_user) if account.is_active]
     categories = [category for category in api_list_categories(None, db, current_user) if category.is_active]
     if record is not None:
@@ -366,7 +390,7 @@ def create_record_action(
     validate_csrf(request, csrf_token)
     form_data = dict(account_id=account_id, category_id=category_id, year=year, month=month, amount=amount, comment=comment)
     try:
-        data = MonthlyRecordCreate(**form_data)
+        data = MonthlyRecordCreate.model_validate(form_data)
         api_create_monthly_record(data, db, current_user)
     except (ValidationError, HTTPException) as exc:
         return render(
@@ -423,7 +447,7 @@ def edit_record_action(
     record = owned_record(record_id, db, current_user)
     form_data = dict(account_id=account_id, category_id=category_id, year=year, month=month, amount=amount, comment=comment)
     try:
-        data = MonthlyRecordUpdate(**form_data)
+        data = MonthlyRecordUpdate.model_validate(form_data)
         updated = api_update_monthly_record(record_id, data, db, current_user)
     except (ValidationError, HTTPException) as exc:
         return render(
@@ -597,7 +621,8 @@ def create_category_action(
 ) -> Response:
     validate_csrf(request, csrf_token)
     try:
-        api_create_category(CategoryCreate(name=name, type=type), db, current_user)
+        data = CategoryCreate.model_validate({"name": name, "type": type})
+        api_create_category(data, db, current_user)
     except (ValidationError, HTTPException) as exc:
         return render(
             request,
@@ -651,7 +676,8 @@ def edit_category_action(
     validate_csrf(request, csrf_token)
     category = owned_category(category_id, db, current_user)
     try:
-        api_update_category(category_id, CategoryUpdate(name=name, type=type), db, current_user)
+        data = CategoryUpdate.model_validate({"name": name, "type": type})
+        api_update_category(category_id, data, db, current_user)
     except (ValidationError, HTTPException) as exc:
         return render(
             request,

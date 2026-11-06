@@ -190,3 +190,16 @@ poetry run pytest --no-cov tests/test_auth_api.py
 
 Known gaps and the reasoning behind the threshold are documented in
 `docs/test-coverage.md`.
+
+## Static type checking
+
+Static type checking is configured with mypy in `pyproject.toml`. Check all
+application modules with:
+
+```bash
+poetry run mypy app
+```
+
+The configuration checks typed function bodies, requires annotations on all
+function definitions, enables the Pydantic plugin for settings and models, and
+reports unnecessary ignores or functions that return `Any`.
