@@ -1,10 +1,14 @@
 from datetime import date
 
 
+MIN_YEAR = 1900
+MAX_YEAR = 9999
+
+
 def validate_period(year: int, month: int) -> tuple[int, int]:
     """Validate and return a financial year and month."""
-    if year < 1:
-        raise ValueError("Year must be greater than zero")
+    if year not in range(MIN_YEAR, MAX_YEAR + 1):
+        raise ValueError(f"Year must be between {MIN_YEAR} and {MAX_YEAR}")
     if month not in range(1, 13):
         raise ValueError("Month must be between 1 and 12")
     return year, month

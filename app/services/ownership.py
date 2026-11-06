@@ -47,6 +47,36 @@ def require_owned_category(
     return category
 
 
+def require_active_account(
+    db: Session,
+    account_id: int,
+    user_id: int,
+) -> Account:
+    """Return an active owned account or reject its use for new records."""
+    account = require_owned_account(db, account_id, user_id)
+    if not account.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Account is inactive",
+        )
+    return account
+
+
+def require_active_category(
+    db: Session,
+    category_id: int,
+    user_id: int,
+) -> Category:
+    """Return an active owned category or reject its use for new records."""
+    category = require_owned_category(db, category_id, user_id)
+    if not category.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Category is inactive",
+        )
+    return category
+
+
 def require_owned_monthly_record(
     db: Session,
     record_id: int,

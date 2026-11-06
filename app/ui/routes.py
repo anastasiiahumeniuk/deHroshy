@@ -201,9 +201,20 @@ def set_auth_cookies(response: RedirectResponse, access_token: str) -> None:
         secure=secure,
         samesite="lax",
     )
+    set_csrf_cookie(response, secrets.token_urlsafe(32), secure=secure)
+
+
+def set_csrf_cookie(
+    response: Response,
+    csrf_token: str,
+    *,
+    secure: bool | None = None,
+) -> None:
+    if secure is None:
+        secure = settings.app_env.lower() in {"production", "prod"}
     response.set_cookie(
         CSRF_COOKIE_NAME,
-        secrets.token_urlsafe(32),
+        csrf_token,
         max_age=settings.access_token_expire_minutes * 60,
         httponly=True,
         secure=secure,
@@ -215,11 +226,16 @@ def set_auth_cookies(response: RedirectResponse, access_token: str) -> None:
 def login_page(request: Request, db: Session = Depends(get_db)) -> Response:
     if optional_ui_user(request, db):
         return RedirectResponse("/ui/dashboard", status_code=303)
-    return render(
+    csrf_token = request.cookies.get(CSRF_COOKIE_NAME) or secrets.token_urlsafe(32)
+    response = render(
         request,
         "login.html",
         registered=request.query_params.get("registered") == "1",
+        csrf_token=csrf_token,
     )
+    if CSRF_COOKIE_NAME not in request.cookies:
+        set_csrf_cookie(response, csrf_token)
+    return response
 
 
 @router.post("/login")
@@ -227,8 +243,10 @@ def login_action(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ) -> Response:
+    validate_csrf(request, csrf_token)
     try:
         token = api_login(LoginRequest(email=email, password=password), db)
     except (ValidationError, HTTPException) as exc:
@@ -249,7 +267,11 @@ def login_action(
 def register_page(request: Request, db: Session = Depends(get_db)) -> Response:
     if optional_ui_user(request, db):
         return RedirectResponse("/ui/dashboard", status_code=303)
-    return render(request, "register.html")
+    csrf_token = request.cookies.get(CSRF_COOKIE_NAME) or secrets.token_urlsafe(32)
+    response = render(request, "register.html", csrf_token=csrf_token)
+    if CSRF_COOKIE_NAME not in request.cookies:
+        set_csrf_cookie(response, csrf_token)
+    return response
 
 
 @router.post("/register")
@@ -257,8 +279,10 @@ def register_action(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ) -> Response:
+    validate_csrf(request, csrf_token)
     try:
         api_register(RegisterRequest(email=email, password=password), db)
     except (ValidationError, HTTPException) as exc:

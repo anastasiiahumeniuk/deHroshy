@@ -1,4 +1,10 @@
-from tests.factories import auth_headers, register_and_login
+from tests.factories import (
+    auth_headers,
+    create_account,
+    create_category,
+    create_monthly_record,
+    register_and_login,
+)
 
 
 def test_create_category(client, authenticated_user, category_data) -> None:
@@ -313,3 +319,38 @@ def test_user_cannot_deactivate_another_users_category(client) -> None:
     )
 
     assert response.status_code == 404
+
+
+def test_used_category_type_cannot_be_changed(client) -> None:
+    token = register_and_login(client, "category_history@example.com")
+    account_id = create_account(client, token)
+    category_id = create_category(client, token, "Food", "EXPENSE")
+    create_monthly_record(client, token, account_id, category_id, amount="5000.00")
+
+    response = client.patch(
+        f"/categories/{category_id}",
+        headers=auth_headers(token),
+        json={"type": "INCOME"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Category type cannot be changed after it has been used"
+    )
+
+
+def test_creating_inactive_category_again_reactivates_it(client) -> None:
+    token = register_and_login(client, "category_reactivate@example.com")
+    headers = auth_headers(token)
+    category_id = create_category(client, token, "Food", "EXPENSE")
+    client.patch(f"/categories/{category_id}/deactivate", headers=headers)
+
+    response = client.post(
+        "/categories",
+        headers=headers,
+        json={"name": "Food", "type": "EXPENSE"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["id"] == category_id
+    assert response.json()["is_active"] is True

@@ -20,7 +20,7 @@
                     {% for category in categories %}<option value="{{ category.id }}" {% if form_data.category_id|string == category.id|string %}selected{% endif %}>{{ category.name }} · {{ category.type.value|title }}{% if not category.is_active %} (inactive){% endif %}</option>{% endfor %}
                 </select>
             </label>
-            <label>Year<input type="number" name="year" min="1" value="{{ form_data.year }}" required></label>
+            <label>Year<input type="number" name="year" min="1900" max="9999" value="{{ form_data.year }}" required></label>
             <label>Month
                 <select name="month" required>{% for number in range(1, 13) %}<option value="{{ number }}" {% if form_data.month|int == number %}selected{% endif %}>{{ number }}</option>{% endfor %}</select>
             </label>

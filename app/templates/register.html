@@ -9,6 +9,7 @@
     </div>
     {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
     <form class="stacked-form" method="post" action="/ui/register">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Email
             <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required autofocus>
         </label>

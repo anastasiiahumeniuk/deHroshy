@@ -6,12 +6,13 @@ from app.schemas.validation import (
     normalize_amount,
     normalize_optional_comment,
 )
+from app.services.periods import MAX_YEAR, MIN_YEAR
 
 
 class MonthlyRecordCreate(BaseModel):
     account_id: int = Field(gt=0)
     category_id: int = Field(gt=0)
-    year: int = Field(gt=0)
+    year: int = Field(ge=MIN_YEAR, le=MAX_YEAR)
     month: int = Field(ge=1, le=12)
     amount: Decimal = Field(
         gt=0,
@@ -34,7 +35,7 @@ class MonthlyRecordCreate(BaseModel):
 class MonthlyRecordUpdate(BaseModel):
     account_id: int | None = Field(default=None, gt=0)
     category_id: int | None = Field(default=None, gt=0)
-    year: int | None = Field(default=None, gt=0)
+    year: int | None = Field(default=None, ge=MIN_YEAR, le=MAX_YEAR)
     month: int | None = Field(default=None, ge=1, le=12)
     amount: Decimal | None = Field(
         default=None,

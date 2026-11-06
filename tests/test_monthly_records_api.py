@@ -622,3 +622,60 @@ def test_user_cannot_assign_another_users_entities_to_record(client) -> None:
 
     assert account_response.status_code == 404
     assert category_response.status_code == 404
+
+
+def test_cannot_create_record_with_inactive_account(client) -> None:
+    token = register_and_login(client, "monthly_inactive_account@example.com")
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+    client.patch(
+        f"/accounts/{account_id}/deactivate",
+        headers=auth_headers(token),
+    )
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Account is inactive"
+
+
+def test_cannot_create_record_with_inactive_category(client) -> None:
+    token = register_and_login(client, "monthly_inactive_category@example.com")
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+    client.patch(
+        f"/categories/{category_id}/deactivate",
+        headers=auth_headers(token),
+    )
+
+    response = create_monthly_record(
+        client,
+        token,
+        account_id,
+        category_id,
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Category is inactive"
+
+
+def test_record_year_must_be_in_supported_range(client) -> None:
+    token = register_and_login(client, "monthly_year_range@example.com")
+    account_id = create_account(client, token)
+    category_id = create_category(client, token)
+
+    for year in (1899, 10000):
+        response = create_monthly_record(
+            client,
+            token,
+            account_id,
+            category_id,
+            year=year,
+        )
+
+        assert response.status_code == 422

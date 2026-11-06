@@ -79,3 +79,19 @@ def test_calculate_monthly_dashboard_handles_empty_month() -> None:
     assert dashboard.savings_rate is None
     assert dashboard.income_by_category == []
     assert dashboard.expenses_by_category == []
+
+
+def test_category_percentages_always_total_one_hundred() -> None:
+    dashboard = calculate_monthly_dashboard(
+        2026,
+        10,
+        [
+            entry(1, "First", CategoryType.EXPENSE, "1.00"),
+            entry(2, "Second", CategoryType.EXPENSE, "1.00"),
+            entry(3, "Third", CategoryType.EXPENSE, "1.00"),
+        ],
+    )
+
+    assert sum(
+        item.percentage for item in dashboard.expenses_by_category
+    ) == Decimal("100.00")

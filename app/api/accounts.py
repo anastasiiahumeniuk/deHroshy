@@ -35,6 +35,13 @@ def create_account(
     )
 
     if existing_account is not None:
+        if not existing_account.is_active:
+            existing_account.is_active = True
+            existing_account.type = data.type
+            db.commit()
+            db.refresh(existing_account)
+            return existing_account
+
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Account with this name already exists",

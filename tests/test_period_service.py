@@ -12,7 +12,8 @@ def test_validate_period_returns_valid_values() -> None:
 @pytest.mark.parametrize(
     ("year", "month", "message"),
     [
-        (0, 10, "Year must be greater than zero"),
+        (1899, 10, "Year must be between 1900 and 9999"),
+        (10000, 10, "Year must be between 1900 and 9999"),
         (2026, 0, "Month must be between 1 and 12"),
         (2026, 13, "Month must be between 1 and 12"),
     ],

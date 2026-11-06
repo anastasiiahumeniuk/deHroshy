@@ -10,6 +10,7 @@
     {% if registered %}<div class="alert success">Account created. You can log in now.</div>{% endif %}
     {% if error %}<div class="alert error">{{ error }}</div>{% endif %}
     <form class="stacked-form" method="post" action="/ui/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>Email
             <input type="email" name="email" value="{{ email or '' }}" autocomplete="email" required autofocus>
         </label>

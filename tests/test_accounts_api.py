@@ -335,3 +335,26 @@ def test_user_cannot_update_or_deactivate_another_users_account(client) -> None:
 
     assert update_response.status_code == 404
     assert deactivate_response.status_code == 404
+
+
+def test_creating_inactive_account_again_reactivates_it(client) -> None:
+    token = register_and_login(client, "account_reactivate@example.com")
+    headers = auth_headers(token)
+    first = client.post(
+        "/accounts",
+        headers=headers,
+        json={"name": "Cash", "type": "cash"},
+    )
+    account_id = first.json()["id"]
+    client.patch(f"/accounts/{account_id}/deactivate", headers=headers)
+
+    response = client.post(
+        "/accounts",
+        headers=headers,
+        json={"name": "Cash", "type": "wallet"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["id"] == account_id
+    assert response.json()["is_active"] is True
+    assert response.json()["type"] == "wallet"

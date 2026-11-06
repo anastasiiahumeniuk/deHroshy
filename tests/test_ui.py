@@ -2,16 +2,26 @@ import re
 
 
 def register_and_login_ui(client, email: str = "ui@example.com") -> str:
+    client.get("/ui/register")
+    csrf_token = client.cookies["csrf_token"]
     register_response = client.post(
         "/ui/register",
-        data={"email": email, "password": "StrongPassword1!"},
+        data={
+            "email": email,
+            "password": "StrongPassword1!",
+            "csrf_token": csrf_token,
+        },
         follow_redirects=False,
     )
     assert register_response.status_code == 303
 
     login_response = client.post(
         "/ui/login",
-        data={"email": email, "password": "StrongPassword1!"},
+        data={
+            "email": email,
+            "password": "StrongPassword1!",
+            "csrf_token": csrf_token,
+        },
         follow_redirects=False,
     )
     assert login_response.status_code == 303
@@ -236,3 +246,17 @@ def test_ui_rejects_missing_csrf_token(client) -> None:
     )
 
     assert response.status_code == 403
+
+
+def test_login_and_registration_require_csrf_token(client) -> None:
+    registration = client.post(
+        "/ui/register",
+        data={"email": "csrf-register@example.com", "password": "StrongPassword1!"},
+    )
+    login = client.post(
+        "/ui/login",
+        data={"email": "csrf-register@example.com", "password": "StrongPassword1!"},
+    )
+
+    assert registration.status_code == 422
+    assert login.status_code == 422

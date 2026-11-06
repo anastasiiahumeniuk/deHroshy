@@ -11,8 +11,8 @@ def test_create_record_validates_ownership_and_persists(monkeypatch) -> None:
     db = MagicMock(spec=Session)
     account_check = MagicMock()
     category_check = MagicMock()
-    monkeypatch.setattr(monthly_records, "require_owned_account", account_check)
-    monkeypatch.setattr(monthly_records, "require_owned_category", category_check)
+    monkeypatch.setattr(monthly_records, "require_active_account", account_check)
+    monkeypatch.setattr(monthly_records, "require_active_category", category_check)
     data = MonthlyRecordCreate(
         account_id=10,
         category_id=20,

@@ -5,8 +5,8 @@ from app.models.category import Category, CategoryType
 from app.models.monthly_record import MonthlyRecord
 from app.schemas.monthly_record import MonthlyRecordCreate, MonthlyRecordUpdate
 from app.services.ownership import (
-    require_owned_account,
-    require_owned_category,
+    require_active_account,
+    require_active_category,
     require_owned_monthly_record,
 )
 from app.services.periods import validate_period
@@ -19,8 +19,8 @@ def create_record(
 ) -> MonthlyRecord:
     """Create a monthly record after validating its period and ownership."""
     validate_period(data.year, data.month)
-    require_owned_account(db, data.account_id, user_id)
-    require_owned_category(db, data.category_id, user_id)
+    require_active_account(db, data.account_id, user_id)
+    require_active_category(db, data.category_id, user_id)
 
     record = MonthlyRecord(
         user_id=user_id,
@@ -80,11 +80,11 @@ def update_record(
     new_month = data.month if data.month is not None else record.month
     validate_period(new_year, new_month)
 
-    if data.account_id is not None:
-        require_owned_account(db, data.account_id, user_id)
+    if data.account_id is not None and data.account_id != record.account_id:
+        require_active_account(db, data.account_id, user_id)
         record.account_id = data.account_id
-    if data.category_id is not None:
-        require_owned_category(db, data.category_id, user_id)
+    if data.category_id is not None and data.category_id != record.category_id:
+        require_active_category(db, data.category_id, user_id)
         record.category_id = data.category_id
     if data.year is not None:
         record.year = data.year

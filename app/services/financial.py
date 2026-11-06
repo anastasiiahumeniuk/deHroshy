@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.services.periods import validate_period
 ZERO_AMOUNT = Decimal("0.00")
 PERCENTAGE_FACTOR = Decimal("100")
 PERCENTAGE_PRECISION = Decimal("0.01")
+PERCENTAGE_UNITS = 10_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,27 +87,40 @@ def build_category_summaries(
     total: Decimal,
 ) -> list[CategorySummary]:
     """Create category summaries with percentages for one category type."""
-    summaries: list[CategorySummary] = []
+    matching_entries = [
+        entry for entry in entries if entry.category_type == category_type
+    ]
+    if not matching_entries or total <= ZERO_AMOUNT:
+        return []
 
-    for entry in entries:
-        if entry.category_type != category_type:
-            continue
+    raw_units = [
+        entry.amount / total * PERCENTAGE_UNITS
+        for entry in matching_entries
+    ]
+    rounded_units = [
+        int(value.to_integral_value(rounding=ROUND_FLOOR))
+        for value in raw_units
+    ]
+    units_to_distribute = PERCENTAGE_UNITS - sum(rounded_units)
+    remainder_order = sorted(
+        range(len(raw_units)),
+        key=lambda index: raw_units[index] - rounded_units[index],
+        reverse=True,
+    )
+    for index in remainder_order[:units_to_distribute]:
+        rounded_units[index] += 1
 
-        percentage = (
-            entry.amount / total * PERCENTAGE_FACTOR
-            if total > ZERO_AMOUNT
-            else ZERO_AMOUNT
+    return [
+        CategorySummary(
+            category_id=entry.category_id,
+            name=entry.category_name,
+            amount=entry.amount,
+            percentage=(
+                Decimal(units) / PERCENTAGE_FACTOR
+            ).quantize(PERCENTAGE_PRECISION),
         )
-        summaries.append(
-            CategorySummary(
-                category_id=entry.category_id,
-                name=entry.category_name,
-                amount=entry.amount,
-                percentage=percentage.quantize(PERCENTAGE_PRECISION),
-            )
-        )
-
-    return summaries
+        for entry, units in zip(matching_entries, rounded_units, strict=True)
+    ]
 
 
 def calculate_monthly_dashboard(

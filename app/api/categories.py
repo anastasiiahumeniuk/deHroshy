@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.category import Category
+from app.models.monthly_record import MonthlyRecord
 from app.models.user import User
 from app.schemas.category import CategoryCreate, CategoryResponse
 from app.models.category import Category, CategoryType
@@ -35,6 +36,12 @@ def create_category(
     )
 
     if existing_category is not None:
+        if not existing_category.is_active:
+            existing_category.is_active = True
+            db.commit()
+            db.refresh(existing_category)
+            return existing_category
+
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Category with this name and type already exists",
@@ -100,6 +107,18 @@ def update_category(
 
     new_name = data.name if data.name is not None else category.name
     new_type = data.type if data.type is not None else category.type
+
+    if data.type is not None and data.type != category.type:
+        existing_record_id = db.scalar(
+            select(MonthlyRecord.id)
+            .where(MonthlyRecord.category_id == category.id)
+            .limit(1)
+        )
+        if existing_record_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Category type cannot be changed after it has been used",
+            )
 
     duplicate = db.scalar(
         select(Category).where(

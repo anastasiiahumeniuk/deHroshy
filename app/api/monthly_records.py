@@ -17,6 +17,7 @@ from app.services.monthly_records import (
     list_records,
     update_record,
 )
+from app.services.periods import MAX_YEAR, MIN_YEAR
 
 
 router = APIRouter(
@@ -43,7 +44,7 @@ def create_monthly_record(
     response_model=list[MonthlyRecordResponse],
 )
 def list_monthly_records(
-    year: int = Query(gt=0),
+    year: int = Query(ge=MIN_YEAR, le=MAX_YEAR),
     month: int = Query(ge=1, le=12),
     account_id: int | None = None,
     category_id: int | None = None,
