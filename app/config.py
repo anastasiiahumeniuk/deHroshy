@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     app_name: str
     app_env: str
     database_url: str
-    test_database_url: str
+    test_database_url: str | None = None
     demo_database_url: str | None = None
     jwt_secret_key: str
     jwt_algorithm: str
